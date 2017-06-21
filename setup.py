@@ -28,7 +28,7 @@ setup(
     author=u'Raphaël Kolm',
     author_dev='raphael@privateaser.com',
     long_description=__doc__,
-    packages=['flask_google_optimize'],
+    py_modules=['flask_google_optimize'],
     install_requires=[
         'Flask'
     ]
