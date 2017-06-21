@@ -64,3 +64,12 @@ The selected variation is then available in the template. Let's use it to make t
 ## See also
 
 https://developers.google.com/optimize/devguides/experiments
+
+## Roadmap
+
+- Add `request.optimize.js_snippet` to generate the Optimize-specific part of Google Analytics' snippet
+- Force a variation by setting a URL parameter: `?ex_cta_size=bigger`
+- Flask Debug Toolbar extension
+- Better error reporting for edge cases
+- Customize the weights of the different variations
+- Set the cookie duration
