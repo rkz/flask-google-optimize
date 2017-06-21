@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import request
+from jinja2 import Markup
 import random
 
 
@@ -18,17 +19,11 @@ class GoogleOptimize(object):
     def init_app(self, app):
         @app.before_request
         def before_request_handler():
-            request.optimize = {}
+            request.optimize = Context(self)
 
         @app.after_request
         def after_request_handler(response):
-            for exp_key, var_key in request.optimize.iteritems():
-                experiment = self.get_exp(exp_key)
-                response.set_cookie(
-                    key='optimize_{}'.format(experiment.id),
-                    value=str(experiment.get_var_id(var_key)),
-                    max_age=3600 * 24 * 30
-                )
+            request.optimize.set_cookies(response)
             return response
 
     def declare_experiment(self, key, id, variations):
@@ -37,25 +32,6 @@ class GoogleOptimize(object):
             id=id,
             variations=variations
         )
-
-    def run(self, key):
-        if key not in self._experiments:
-            raise ValueError(u"No experiment with key '{}'".format(key))
-
-        experiment = self.get_exp(key=key)
-
-        if key in request.optimize:  # test has already been ran in the request
-            return
-
-        # Reuse the cookie if it points to a valid variation, otherwise assign a random variation
-        cookie_key = 'optimize_{}'.format(experiment.id)
-        cookie_value = request.cookies.get(cookie_key)
-        if cookie_value and int(cookie_value) in experiment.variations:
-            variation = int(cookie_value)
-        else:
-            variation = random.randint(0, len(experiment.variations) - 1)
-
-        request.optimize[key] = experiment.get_var_key(variation)
 
     def get_exp(self, key=None, id=None):
         if key:
@@ -76,3 +52,63 @@ class Experiment(object):
 
     def get_var_key(self, id):
         return self.variations[id]
+
+
+class Context(object):
+    """
+    Choice of variations for each relevant experiment in the context of a request.
+    """
+
+    def __init__(self, optimize):
+        self.optimize = optimize
+        self.variations = {}  # {exp_key: var_key}
+
+    def run(self, experiment_key):
+        """
+        Enable an experiment in the current request and choose the most appropriate variation: either the one to which
+        the user is already assigned to (if it's still declared), or randomly pick one.
+        """
+        experiment = self.optimize.get_exp(experiment_key)
+
+        # Reuse the cookie if it points to a valid variation, otherwise assign a random variation
+        cookie_value = request.cookies.get('flask_google_optimize__{}'.format(experiment.id))
+        if cookie_value and int(cookie_value) in experiment.variations:
+            variation = int(cookie_value)
+        else:
+            variation = random.randint(0, len(experiment.variations) - 1)
+
+        self.variations[experiment.key] = experiment.get_var_key(variation)
+
+    def set_cookies(self, response):
+        """
+        Set the appropriate cookies on `response` so that the assigned variations to the enabled experiments are saved
+        until the next hit.
+        """
+        for exp_key, var_key in self.variations.iteritems():
+            experiment = self.optimize.get_exp(exp_key)
+            response.set_cookie(
+                key='flask_google_optimize__{}'.format(experiment.id),
+                value=str(experiment.get_var_id(var_key)),
+                max_age=3600 * 24 * 30
+            )
+
+    def __getattr__(self, experiment_key):
+        """
+        Shorthand to `self.variations['<experiment_key>']`.
+        """
+        return self.variations[experiment_key]
+
+    @property
+    def js_snippet(self):
+        """
+        JavaScript code to insert into the Google Analytics snippet in order to tell Google Optimize which variation
+        was chosen on each enabled test.
+        """
+
+        code = ''
+
+        for exp_key, var_key in self.variations.iteritems():
+            exp = self.optimize.get_exp(exp_key)
+            code += "ga('set', 'exp', '{}.{}');\n".format(exp.id, exp.get_var_id(var_key))
+
+        return Markup(code)
