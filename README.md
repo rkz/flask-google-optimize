@@ -1,6 +1,10 @@
 # Flask-Google-Optimize
 
-## Usage
+## Purpose
+
+(Coming soon)
+
+## Tutorial
 
 ### Setup
 
