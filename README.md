@@ -37,9 +37,11 @@ Do the same for every running experiment.
 In the view function where you'll need the template to know which variation the user is assigned to, use `run()`. 
 
 ```python
+from flask import render_template, request
+
 @app.route('/cart')
 def cart():
-    optimize.run('cta_size')
+    request.optimize.run('cta_size')
     return render_template('cart.html')
 ```
 
@@ -61,15 +63,30 @@ The selected variation is then available in the template. Let's use it to make t
 </div>
 ```
 
+You must also report the chosen varitaions to Google Optimize, through [specific calls in the Analytics snippet](https://developers.google.com/optimize/devguides/experiments#add-ga-tracking-code-to-variations):
+
+```html
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-XXXXX-Y', 'auto');
+
+  {{ request.optimize.js_snippet }}
+
+  ga('send', 'pageview');
+</script>
+```
+
 ## See also
 
 https://developers.google.com/optimize/devguides/experiments
 
 ## Roadmap
 
-- Add `request.optimize.js_snippet` to generate the Optimize-specific part of Google Analytics' snippet
-- Force a variation by setting a URL parameter: `?ex_cta_size=bigger`
 - Flask Debug Toolbar extension
 - Better error reporting for edge cases
 - Customize the weights of the different variations
-- Set the cookie duration
+- Customize the cookie duration
