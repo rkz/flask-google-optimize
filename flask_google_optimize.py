@@ -39,6 +39,9 @@ class GoogleOptimize(object):
         if id:
             return [e for e in self._experiments if e['id'] == id][0]
 
+    def get_all_experiments(self):
+        return self._experiments.values()
+
 
 class Experiment(object):
 
@@ -71,13 +74,30 @@ class Context(object):
         experiment = self.optimize.get_exp(experiment_key)
 
         # Reuse the cookie if it points to a valid variation, otherwise assign a random variation
-        cookie_value = request.cookies.get('flask_google_optimize__{}'.format(experiment.id))
+        cookie_value = self.get_cookie_value(experiment.id)
         if cookie_value and int(cookie_value) in experiment.variations:
             variation = int(cookie_value)
         else:
             variation = random.randint(0, len(experiment.variations) - 1)
 
         self.variations[experiment.key] = experiment.get_var_key(variation)
+
+    def wake_up(self):
+        """
+        Retrieve the assigned variations for the declared experiments that have been run earlier.
+        """
+
+        for exp in self.optimize.get_all_experiments():
+            cookie_value = self.get_cookie_value(exp.id)
+            if cookie_value and int(cookie_value) in exp.variations:
+                self.variations[exp.key] = exp.get_var_key(int(cookie_value))
+
+    def get_cookie_value(self, exp_id):
+        """
+        Get the value of the cookie corresponding to the given experiment ID, regardless of whether the experiment ID
+        corresponds to a declared experiment.
+        """
+        return request.cookies.get('flask_google_optimize__{}'.format(exp_id))
 
     def set_cookies(self, response):
         """
