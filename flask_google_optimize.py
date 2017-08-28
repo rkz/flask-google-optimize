@@ -48,7 +48,7 @@ class Experiment(object):
     def __init__(self, key, id, variations):
         self.key = key
         self.id = id
-        self.variations = variations
+        self.variations = variations  # {var_id: var_key}
 
     def get_var_id(self, key):
         return [var_id for (var_id, var_key) in self.variations.iteritems() if var_key == key][0]
@@ -64,7 +64,7 @@ class Context(object):
 
     def __init__(self, optimize):
         self.optimize = optimize
-        self.variations = {}  # {exp_key: var_key}
+        self._active_variations = {}  # {exp_key: var_id}
 
     def run(self, experiment_key):
         """
@@ -76,11 +76,11 @@ class Context(object):
         # Reuse the cookie if it points to a valid variation, otherwise assign a random variation
         cookie_value = self.get_cookie_value(experiment.id)
         if cookie_value and int(cookie_value) in experiment.variations:
-            variation = int(cookie_value)
+            variation_id = int(cookie_value)
         else:
-            variation = random.randint(0, len(experiment.variations) - 1)
+            variation_id = random.randint(0, len(experiment.variations) - 1)
 
-        self.variations[experiment.key] = experiment.get_var_key(variation)
+        self._active_variations[experiment.key] = variation_id
 
     def wake_up(self):
         """
@@ -90,7 +90,7 @@ class Context(object):
         for exp in self.optimize.get_all_experiments():
             cookie_value = self.get_cookie_value(exp.id)
             if cookie_value and int(cookie_value) in exp.variations:
-                self.variations[exp.key] = exp.get_var_key(int(cookie_value))
+                self._active_variations[exp.key] = int(cookie_value)
 
     def get_cookie_value(self, exp_id):
         """
@@ -104,11 +104,11 @@ class Context(object):
         Set the appropriate cookies on `response` so that the assigned variations to the enabled experiments are saved
         until the next hit.
         """
-        for exp_key, var_key in self.variations.iteritems():
+        for exp_key, var_id in self._active_variations.iteritems():
             experiment = self.optimize.get_exp(exp_key)
             response.set_cookie(
                 key='flask_google_optimize__{}'.format(experiment.id),
-                value=str(experiment.get_var_id(var_key)),
+                value=str(var_id),
                 max_age=3600 * 24 * 30
             )
 
@@ -127,8 +127,15 @@ class Context(object):
 
         code = ''
 
-        for exp_key, var_key in self.variations.iteritems():
+        for exp_key, var_id in self._active_variations.iteritems():
             exp = self.optimize.get_exp(exp_key)
-            code += "ga('set', 'exp', '{}.{}');\n".format(exp.id, exp.get_var_id(var_key))
+            code += "ga('set', 'exp', '{}.{}');\n".format(exp.id, var_id)
 
         return Markup(code)
+
+    @property
+    def variations(self):
+        return {
+            exp_key: self.optimize.get_exp(key=exp_key).variations[var_id]
+            for exp_key, var_id in self._active_variations.iteritems()
+        }
