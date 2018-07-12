@@ -74,8 +74,12 @@ class Context(object):
         experiment = self.optimize.get_exp(experiment_key)
 
         # Reuse the cookie if it points to a valid variation, otherwise assign a random variation
-        cookie_value = self.get_cookie_value(experiment.id)
-        if cookie_value and int(cookie_value) in experiment.variations:
+        try:
+            cookie_value = int(self.get_cookie_value(experiment.id))
+        except (ValueError, UnicodeDecodeError):
+            cookie_value = None
+
+        if cookie_value and cookie_value in experiment.variations:
             variation_id = int(cookie_value)
         else:
             variation_id = random.randint(0, len(experiment.variations) - 1)
