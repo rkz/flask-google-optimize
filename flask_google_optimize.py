@@ -5,7 +5,7 @@ from jinja2 import Markup
 import random
 
 
-__version__ = '0.1.1'
+__version__ = '0.1.3'
 
 
 class GoogleOptimize(object):
@@ -73,13 +73,17 @@ class Context(object):
         """
         experiment = self.optimize.get_exp(experiment_key)
 
-        # Reuse the cookie if it points to a valid variation, otherwise assign a random variation
+        # Try to get the current variation for this user from the cookie
         try:
             cookie_value = int(self.get_cookie_value(experiment.id))
-        except (ValueError, UnicodeDecodeError):
+        except (TypeError, ValueError, UnicodeDecodeError):
+            # TypeError to handle None value
+            # ValueError to handle strings with non integer values
+            # UnicodeDecodeError for strings with non western characters, like Chinese...
             cookie_value = None
 
-        if cookie_value and cookie_value in experiment.variations:
+        # Reuse the cookie if it points to a valid variation, otherwise assign a random variation
+        if cookie_value is not None and cookie_value in experiment.variations:
             variation_id = int(cookie_value)
         else:
             variation_id = random.randint(0, len(experiment.variations) - 1)
