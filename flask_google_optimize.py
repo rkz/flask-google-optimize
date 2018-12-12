@@ -27,6 +27,14 @@ class GoogleOptimize(object):
             return response
 
     def declare_experiment(self, key, id, variations):
+        """
+        Declare a new A/B test
+
+        :param key: String. A human readable name of the variation. This should be a valid python identifier
+        :param id: String.The associated Optimize ID of the experiment.
+        :param variations: A List used to declare the different variations and their respective distribution:
+        [{'key': 'small', 'weight': 0.5}, {'key': 'big', 'weight': 0.5}]
+        """
         self._experiments[key] = Experiment(
             key=key,
             id=id,
@@ -37,7 +45,7 @@ class GoogleOptimize(object):
         if key:
             return self._experiments[key]
         if id:
-            return [e for e in self._experiments if e['id'] == id][0]
+            return [e for e in self._experiments if e.id == id][0]
 
     def get_all_experiments(self):
         return self._experiments.values()
@@ -48,13 +56,14 @@ class Experiment(object):
     def __init__(self, key, id, variations):
         self.key = key
         self.id = id
-        self.variations = variations  # {var_id: var_key}
+        self.variations = variations  # [{'key': 'small', 'weight': 0.5},...]
 
     def get_var_id(self, key):
-        return [var_id for (var_id, var_key) in self.variations.iteritems() if var_key == key][0]
+        return [variation_index
+                for (variation_index, variation) in enumerate(self.variations) if variation['key'] == key][0]
 
     def get_var_key(self, id):
-        return self.variations[id]
+        return self.variations[id]['key']
 
 
 class Context(object):
@@ -83,12 +92,35 @@ class Context(object):
             cookie_value = None
 
         # Reuse the cookie if it points to a valid variation, otherwise assign a random variation
-        if cookie_value is not None and cookie_value in experiment.variations:
-            variation_id = int(cookie_value)
-        else:
-            variation_id = random.randint(0, len(experiment.variations) - 1)
+        try:
+            cookie_value = int(cookie_value)
+            if not (0 <= cookie_value < len(experiment.variations)):
+                # Cookie value ia a garbage number, just ignore it and rerun the experiment for this user
+                raise ValueError
+            variation_id = cookie_value
+        except ValueError:
+            variation_id = self._choose_variation(experiment.variations)
 
         self._active_variations[experiment.key] = variation_id
+
+    def _choose_variation(self, variations):
+        """
+        Return the index of the randomly chosen variation. Choice is by default non uniform and depends on the weight
+        of each variation (you can of course simulate a uniform variation by giving the same weight to each variation
+
+        Implementation algorithm is quite simple : we construct a list of variation indexes. Each index is repeated
+        more or less depending on its weight. And then it's just a matter of using the random.choice function
+        to randomly pick a choice in this weighted list.
+
+        :param variations: A list of {'key':..., 'weight'...}
+        :return: Integer. The index of the chosen variation from variations
+        """
+        weighted_variation_list = []
+        for index, variation in enumerate(variations):
+            variation_list = [index for _ in range(0, int(variation['weigth'] * 100))]
+            weighted_variation_list.extend(variation_list)
+
+        return random.choice(weighted_variation_list)
 
     def wake_up(self):
         """
