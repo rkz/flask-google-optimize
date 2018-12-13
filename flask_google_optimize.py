@@ -57,6 +57,18 @@ class Experiment(object):
         self.key = key
         self.id = id
         self.variations = variations  # [{'key': 'small', 'weight': 0.5},...]
+        self._validate_variations()
+
+    def _validate_variations(self):
+        """
+        Validate that all the weight for each variation is a valid float number and the sum of all weight is <= 1
+
+        :raises TypeError or ValueError: is the validation fails
+        """
+
+        weights = [float(variation['weight']) for variation in self.variations]
+        if sum(weights) > 1.0:
+            raise ValueError('The sum of all your weights should not exceed 1.0')
 
     def get_var_id(self, key):
         return [variation_index
@@ -106,7 +118,7 @@ class Context(object):
     def _choose_variation(self, variations):
         """
         Return the index of the randomly chosen variation. Choice is by default non uniform and depends on the weight
-        of each variation (you can of course simulate a uniform variation by giving the same weight to each variation
+        of each variation (you can of course simulate a uniform variation by giving the same weight to each variation)
 
         Implementation algorithm is quite simple : we construct a list of variation indexes. Each index is repeated
         more or less depending on its weight. And then it's just a matter of using the random.choice function
