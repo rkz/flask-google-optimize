@@ -168,7 +168,7 @@ class Context(object):
         """
         Shorthand to `self.variations['<experiment_key>']`.
         """
-        return self.variations[experiment_key]
+        return self.variations[experiment_key]['key']
 
     @property
     def js_snippet(self):
