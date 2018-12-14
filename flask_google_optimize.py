@@ -5,7 +5,7 @@ from jinja2 import Markup
 import random
 
 
-__version__ = '0.1.3'
+__version__ = '0.1.6'
 
 
 class GoogleOptimize(object):
