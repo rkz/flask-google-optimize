@@ -110,7 +110,7 @@ class Context(object):
                 # Cookie value ia a garbage number, just ignore it and rerun the experiment for this user
                 raise ValueError
             variation_id = cookie_value
-        except ValueError:
+        except (TypeError, ValueError):
             variation_id = self._choose_variation(experiment.variations)
 
         self._active_variations[experiment.key] = variation_id
@@ -129,7 +129,7 @@ class Context(object):
         """
         weighted_variation_list = []
         for index, variation in enumerate(variations):
-            variation_list = [index for _ in range(0, int(variation['weigth'] * 100))]
+            variation_list = [index for _ in range(0, int(variation['weight'] * 100))]
             weighted_variation_list.extend(variation_list)
 
         return random.choice(weighted_variation_list)

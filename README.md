@@ -22,11 +22,11 @@ Describe all the experiments currently running in Google Optimize. Give them mea
 optimize.declare_experiment(
     key='cta_size',
     id='16iQisXuS1qwXDixwB-EWgQ',
-    variations={
-        0: None,
-        1: 'bigger',
-        2: 'smaller'
-    }
+    variations=[
+        {'key': None, 'weight': 0.33},
+        {'key': 'bigger', 'weight': 0.33},
+        {'key': 'smaller', 'weight': 0.33}
+    ]
 )
 ```
 
@@ -63,7 +63,7 @@ The selected variation is then available in the template. Let's use it to make t
 </div>
 ```
 
-You must also report the chosen varitaions to Google Optimize, through [specific calls in the Analytics snippet](https://developers.google.com/optimize/devguides/experiments#add-ga-tracking-code-to-variations):
+You must also report the chosen variations to Google Optimize, through [specific calls in the Analytics snippet](https://developers.google.com/optimize/devguides/experiments#add-ga-tracking-code-to-variations):
 
 ```html
 <script>
@@ -88,5 +88,4 @@ https://developers.google.com/optimize/devguides/experiments
 
 - Flask Debug Toolbar extension
 - Better error reporting for edge cases
-- Customize the weights of the different variations
 - Customize the cookie duration
