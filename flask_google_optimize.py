@@ -87,6 +87,14 @@ class Context(object):
         self.optimize = optimize
         self._active_variations = {}  # {exp_key: var_id}
 
+    def __str__(self):
+        experiment_and_variations = []
+        for experiment_key, variation_index in self._active_variations.items():
+            experiment = self.optimize.get_exp(experiment_key)
+            variation = experiment.variations[variation_index]
+            experiment_and_variations.append('{}={}'.format(experiment_key, variation['key']))
+        return ";".join(experiment_and_variations)
+
     def run(self, experiment_key):
         """
         Enable an experiment in the current request and choose the most appropriate variation: either the one to which
@@ -141,7 +149,7 @@ class Context(object):
 
         for exp in self.optimize.get_all_experiments():
             cookie_value = self.get_cookie_value(exp.id)
-            if cookie_value and int(cookie_value) in exp.variations:
+            if cookie_value and int(cookie_value) < len(exp.variations):
                 self._active_variations[exp.key] = int(cookie_value)
 
     def get_cookie_value(self, exp_id):
