@@ -159,6 +159,12 @@ class Context(object):
         """
         return request.cookies.get('flask_google_optimize__{}'.format(exp_id))
 
+    def set_variation(self, exp_key, var_id):
+        """
+        Set a new variation id (var_id) for the experiment with the given experiment key (exp_key)
+        """
+        self._active_variations[exp_key] = int(var_id)
+
     def set_cookies(self, response):
         """
         Set the appropriate cookies on `response` so that the assigned variations to the enabled experiments are saved
