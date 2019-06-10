@@ -48,7 +48,7 @@ class GoogleOptimize(object):
             return [e for e in self._experiments if e.id == id][0]
 
     def get_all_experiments(self):
-        return self._experiments.values()
+        return list(self._experiments.values())
 
 
 class Experiment(object):
@@ -89,7 +89,7 @@ class Context(object):
 
     def __str__(self):
         experiment_and_variations = []
-        for experiment_key, variation_index in self._active_variations.items():
+        for experiment_key, variation_index in list(self._active_variations.items()):
             experiment = self.optimize.get_exp(experiment_key)
             variation = experiment.variations[variation_index]
             experiment_and_variations.append('{}={}'.format(experiment_key, variation['key']))
@@ -170,7 +170,7 @@ class Context(object):
         Set the appropriate cookies on `response` so that the assigned variations to the enabled experiments are saved
         until the next hit.
         """
-        for exp_key, var_id in self._active_variations.iteritems():
+        for exp_key, var_id in self._active_variations.items():
             experiment = self.optimize.get_exp(exp_key)
             response.set_cookie(
                 key='flask_google_optimize__{}'.format(experiment.id),
@@ -193,7 +193,7 @@ class Context(object):
 
         code = ''
 
-        for exp_key, var_id in self._active_variations.iteritems():
+        for exp_key, var_id in self._active_variations.items():
             exp = self.optimize.get_exp(exp_key)
             code += "ga('set', 'exp', '{}.{}');\n".format(exp.id, var_id)
 
@@ -203,5 +203,5 @@ class Context(object):
     def variations(self):
         return {
             exp_key: self.optimize.get_exp(key=exp_key).variations[var_id]
-            for exp_key, var_id in self._active_variations.iteritems()
+            for exp_key, var_id in self._active_variations.items()
         }

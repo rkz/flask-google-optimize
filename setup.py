@@ -25,7 +25,7 @@ with open('flask_google_optimize.py', 'rb') as f:
 setup(
     name='Flask-Google-Optimize',
     version=version,
-    author=u'Raphaël Kolm',
+    author='Raphaël Kolm',
     author_dev='raphael@privateaser.com',
     long_description=__doc__,
     py_modules=['flask_google_optimize'],
